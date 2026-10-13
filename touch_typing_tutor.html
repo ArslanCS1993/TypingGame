@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50-Word Touch-Typing & Chord Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .mono-font { font-family: 'JetBrains Mono', monospace; }
+        
+        .finger-highlight {
+            transition: all 0.2s ease-in-out;
+            filter: drop-shadow(0px 0px 8px rgba(99, 102, 241, 0.9));
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 10px rgba(16, 185, 129, 0.6)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 20px rgba(16, 185, 129, 1)); transform: scale(1.02); }
+        }
+
+        .active-chord-pulse {
+            animation: pulse-glow 1.5s infinite ease-in-out;
+        }
+
+        /* Custom scrollbar for word dropdown */
+        select::-webkit-scrollbar {
+            width: 6px;
+        }
+        select::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-full flex flex-col selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 border-b border-slate-800 px-4 md:px-8 py-3.5 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-50 backdrop-blur">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-600 to-violet-500 p-2.5 rounded-2xl shadow-lg shadow-indigo-500/20 text-white font-bold text-xl flex items-center justify-center w-11 h-11">
+                ⌨️
+            </div>
+            <div>
+                <h1 class="text-xl font-extrabold tracking-tight text-white flex items-center gap-2">
+                    50-Word Typing & Chord Tutor
+                </h1>
+                <p class="text-xs text-slate-400">Finger Guidance & Feasible Multi-Key Chord Training</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+            <button onclick="app.switchTab('practice')" id="tab-practice" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl transition-all bg-indigo-600 text-white shadow-md shadow-indigo-500/20">
+                🎯 Word Practice Mode
+            </button>
+            <button onclick="app.switchTab('custom')" id="tab-custom" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-white">
+                ✏️ Custom Words
+            </button>
+            <button onclick="app.switchTab('guide')" id="tab-guide" class="px-4 py-2 text-xs md:text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-white">
+                📖 Finger Scheme Guide
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-between gap-6">
+
+        <!-- VIEW 1: PRACTICE MODE -->
+        <div id="view-practice" class="space-y-6 flex-1 flex flex-col justify-between">
+            
+            <!-- Navigation, Dropdown & Stats Header -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                
+                <!-- Word Navigation Selector -->
+                <div class="md:col-span-7 bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl flex items-center gap-3 shadow-xl">
+                    <button onclick="app.prevWord()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition-all flex items-center gap-1 shrink-0">
+                        ◀ Prev
+                    </button>
+
+                    <div class="flex-1 min-w-0">
+                        <select id="word-select-dropdown" onchange="app.onSelectWord(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs md:text-sm font-mono font-bold text-indigo-300 focus:outline-none focus:border-indigo-500">
+                            <!-- Populated with 50 practice words -->
+                        </select>
+                    </div>
+
+                    <button onclick="app.nextWord()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl text-xs transition-all flex items-center gap-1 shadow-md shadow-indigo-500/20 shrink-0">
+                        Next ▶
+                    </button>
+                </div>
+
+                <!-- Live Metrics -->
+                <div class="md:col-span-5 grid grid-cols-3 gap-2">
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-2.5 text-center shadow-md">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Progress</div>
+                        <div class="text-lg font-bold mono-font text-indigo-400"><span id="stat-progress">1</span> <span class="text-[10px] font-normal text-slate-500">/ 50</span></div>
+                    </div>
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-2.5 text-center shadow-md">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
+                        <div class="text-lg font-bold mono-font text-emerald-400"><span id="stat-accuracy">100</span><span class="text-[10px] font-normal text-slate-500">%</span></div>
+                    </div>
+                    <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-2.5 text-center shadow-md">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Streak</div>
+                        <div class="text-lg font-bold mono-font text-amber-400" id="stat-streak">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Visual Dual Hands Section -->
+            <div class="bg-slate-900/90 border border-slate-800/80 rounded-3xl p-4 md:p-6 shadow-2xl relative overflow-hidden flex flex-col items-center">
+                <div class="w-full flex items-center justify-between mb-1 px-2">
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>🖐️ Left Hand</span>
+                    </div>
+                    <div class="text-center">
+                        <span id="step-phase-badge" class="px-4 py-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-full text-xs font-semibold tracking-wide uppercase">
+                            Step 1: Sequential Letter Typing
+                        </span>
+                    </div>
+                    <div class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <span>Right Hand 🖐️</span>
+                    </div>
+                </div>
+
+                <!-- Dual Hands SVG Box -->
+                <div id="dual-hands-container" class="w-full max-w-3xl h-44 md:h-52 my-1">
+                    <!-- Dynamic SVG injected via JavaScript -->
+                </div>
+
+                <!-- Active Finger Label -->
+                <div id="active-finger-label" class="mt-2 text-center text-xs md:text-sm font-semibold text-slate-200 bg-slate-950/80 px-4 py-1.5 rounded-xl border border-slate-800 shadow">
+                    Active Finger: <span class="text-indigo-400 font-bold" id="finger-label-name">Preparing...</span>
+                </div>
+            </div>
+
+            <!-- Interactive Word Target Display -->
+            <div id="prompt-card" class="bg-gradient-to-b from-slate-900 to-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl flex flex-col items-center justify-center relative min-h-[190px]">
+                
+                <!-- STEP 1: SEQUENTIAL TYPING PROMPT -->
+                <div id="step-1-prompt" class="flex flex-col items-center gap-3 w-full">
+                    <div class="text-xs uppercase font-extrabold tracking-widest text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20">
+                        Step 1: Type Letter By Letter
+                    </div>
+                    <div id="typing-prompt-display" class="flex flex-wrap justify-center items-center gap-2 my-2">
+                        <!-- Dynamic Word Character Cards -->
+                    </div>
+                    <div id="step-1-instruction" class="text-xs font-semibold text-slate-400 text-center">
+                        Type the highlighted letter using your <span id="target-finger-text" class="text-indigo-400 font-bold">--</span>.
+                    </div>
+                </div>
+
+                <!-- STEP 2: CHORD MULTI-KEY HOLD CHALLENGE PROMPT -->
+                <div id="step-2-prompt" class="hidden flex-col items-center gap-4 w-full">
+                    <div class="text-xs uppercase font-extrabold tracking-widest text-amber-400 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                        ⚡ Step 2: Press & Hold All Feasible Finger Keys Together!
+                    </div>
+                    
+                    <div id="chord-word-display" class="text-4xl md:text-5xl font-extrabold font-mono text-white tracking-widest bg-slate-950/80 px-8 py-3 rounded-2xl border border-slate-800 shadow-inner">
+                        CAT
+                    </div>
+
+                    <!-- Unique Feasible Finger Badges -->
+                    <div class="flex flex-wrap justify-center gap-3 my-1" id="chord-key-badges">
+                        <!-- Badges rendered via JS -->
+                    </div>
+
+                    <div id="chord-instruction-banner" class="text-xs md:text-sm font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-6 py-2 rounded-xl text-center animate-pulse">
+                        👇 PRESS AND HOLD ALL TARGET KEYS AT THE SAME TIME
+                    </div>
+                </div>
+
+                <div id="feedback-toast" class="mt-3 text-xs font-semibold text-slate-400 tracking-wide text-center">
+                    Type the highlighted key using the suggested finger.
+                </div>
+            </div>
+
+            <!-- Virtual On-Screen QWERTY Keyboard -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-4 md:p-5 shadow-2xl flex flex-col items-center gap-2 select-none overflow-x-auto">
+                <div class="flex gap-1.5 w-full justify-center" id="keyboard-row-1"></div>
+                <div class="flex gap-1.5 w-full justify-center" id="keyboard-row-2"></div>
+                <div class="flex gap-1.5 w-full justify-center" id="keyboard-row-3"></div>
+                <div class="flex gap-1.5 w-full justify-center" id="keyboard-row-4"></div>
+            </div>
+
+        </div>
+
+        <!-- VIEW 2: CUSTOM WORD BUILDER -->
+        <div id="view-custom" class="space-y-6 hidden flex-1 max-w-3xl mx-auto w-full">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6">
+                <div class="border-b border-slate-800 pb-4">
+                    <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                        <span>✏️</span> Custom Words & Vocabulary Builder
+                    </h2>
+                    <p class="text-sm text-slate-400 mt-1">
+                        Add your own custom words to practice both sequential typing and multi-key chord holding.
+                    </p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+                            Enter Practice Words (Space Separated):
+                        </label>
+                        <textarea id="custom-words-input" rows="6" class="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 font-mono text-base text-indigo-300 focus:outline-none focus:border-indigo-500 shadow-inner" placeholder="e.g. apple computer typing practice code shift space"></textarea>
+                    </div>
+
+                    <div class="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 text-xs text-slate-400 space-y-2">
+                        <div class="font-bold text-slate-300">💡 How Feasible Chords Work:</div>
+                        <p>When multiple letters in a word belong to the same finger (e.g., 'F' and 'R' in "FREE"), the application automatically selects one key per unique finger so that the chord can be comfortably held simultaneously!</p>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="app.saveCustomWords()" class="flex-1 py-3 px-6 bg-indigo-600 hover:bg-indigo-500 font-bold text-sm text-white rounded-xl shadow-lg shadow-indigo-500/20 transition-all text-center">
+                            💾 Load Custom Words List
+                        </button>
+                        <button onclick="app.resetTo50Preset()" class="py-3 px-6 bg-slate-800 hover:bg-slate-700 font-bold text-sm text-slate-300 rounded-xl transition-all">
+                            🔄 Restore 50 Simple Preset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: FINGER MAPPING SCHEME GUIDE -->
+        <div id="view-guide" class="space-y-6 hidden flex-1">
+            <div class="text-center space-y-2 py-2">
+                <h2 class="text-2xl md:text-3xl font-extrabold text-white">Full Touch-Typing Finger Scheme</h2>
+                <p class="text-slate-400 text-sm max-w-xl mx-auto">Specific key assignments used for both left and right hands.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="scheme-guide-cards">
+                <!-- Dynamically generated scheme cards -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Audio & Logic Scripts -->
+    <script>
+        // Web Audio Synthesizer for feedback
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playTone(freq = 600, type = 'sine', duration = 0.08) {
+                try {
+                    this.init();
+                    if (!this.ctx) return;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = type;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + duration);
+                } catch(e) {}
+            }
+            playSuccess() {
+                this.playTone(523.25, 'triangle', 0.08); // C5
+                setTimeout(() => this.playTone(659.25, 'triangle', 0.1), 70); // E5
+                setTimeout(() => this.playTone(783.99, 'triangle', 0.18), 140); // G5
+            }
+            playError() {
+                this.playTone(180, 'sawtooth', 0.18);
+            }
+        }
+
+        const sound = new SoundFX();
+
+        // Preset List of 50 Simple English Practice Words
+        const PRESET_50_WORDS = [
+            "cat", "dog", "run", "red", "sun", "hand", "book", "tree", "star", "fish",
+            "blue", "fast", "jump", "play", "walk", "sing", "desk", "lamp", "rain", "wind",
+            "mind", "time", "work", "life", "open", "call", "turn", "lead", "seek", "grow",
+            "flow", "form", "keep", "make", "move", "show", "look", "find", "give", "take",
+            "path", "line", "step", "word", "text", "type", "keys", "finger", "chord", "home"
+        ];
+
+        // Specific Finger Mapping Definition
+        const FINGER_SCHEME = [
+            // Left Hand
+            { id: 'left-pinky', name: 'Left Pinky', hand: 'left', finger: 'Pinky', keys: ['1', 'q', 'a', 'z'], color: '#f43f5e' },
+            { id: 'left-ring', name: 'Left Ring', hand: 'left', finger: 'Ring', keys: ['2', 'w', 's', 'x'], color: '#fb923c' },
+            { id: 'left-middle', name: 'Left Middle', hand: 'left', finger: 'Middle', keys: ['3', 'e', 'd', 'c'], color: '#fbbf24' },
+            { id: 'left-index', name: 'Left Index', hand: 'left', finger: 'Index', keys: ['4', '5', 'r', 'f', 'v', 't', 'g', 'b'], color: '#34d399' },
+            
+            // Right Hand
+            { id: 'right-index', name: 'Right Index', hand: 'right', finger: 'Index', keys: ['6', '7', 'y', 'u', 'h', 'j', 'n', 'm'], color: '#38bdf8' },
+            { id: 'right-middle', name: 'Right Middle', hand: 'right', finger: 'Middle', keys: ['8', 'i', 'k', ','], color: '#818cf8' },
+            { id: 'right-ring', name: 'Right Ring', hand: 'right', finger: 'Ring', keys: ['9', 'o', 'l', '.'], color: '#c084fc' },
+            { id: 'right-pinky', name: 'Right Pinky', hand: 'right', finger: 'Pinky', keys: ['0', 'p', ';', '/'], color: '#f472b6' }
+        ];
+
+        const KEYBOARD_ROWS = [
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '='],
+            ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']'],
+            ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'"],
+            ['z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/']
+        ];
+
+        class WordTypingApp {
+            constructor() {
+                this.words = [...PRESET_50_WORDS];
+                this.wordIndex = 0;
+                
+                // Step 1: Sequential letter index; Step 2: Chord multi-key state
+                this.step = 1; 
+                this.charIndex = 0;
+
+                // Chord state
+                this.heldKeys = new Set();
+                this.chordFullyHeld = false;
+
+                // Stats
+                this.totalTyped = 0;
+                this.errorCount = 0;
+                this.streak = 0;
+
+                this.init();
+            }
+
+            init() {
+                this.renderKeyboard();
+                this.renderGuideCards();
+                this.populateDropdown();
+                this.loadWord();
+                this.setupKeyListeners();
+            }
+
+            switchTab(tab) {
+                document.getElementById('view-practice').classList.toggle('hidden', tab !== 'practice');
+                document.getElementById('view-custom').classList.toggle('hidden', tab !== 'custom');
+                document.getElementById('view-guide').classList.toggle('hidden', tab !== 'guide');
+
+                ['practice', 'custom', 'guide'].forEach(t => {
+                    const btn = document.getElementById(`tab-${t}`);
+                    if (t === tab) {
+                        btn.className = "px-4 py-2 text-xs md:text-sm font-semibold rounded-xl transition-all bg-indigo-600 text-white shadow-md shadow-indigo-500/20";
+                    } else {
+                        btn.className = "px-4 py-2 text-xs md:text-sm font-semibold rounded-xl transition-all text-slate-400 hover:text-white";
+                    }
+                });
+            }
+
+            populateDropdown() {
+                const select = document.getElementById('word-select-dropdown');
+                select.innerHTML = this.words.map((w, idx) => `
+                    <option value="${idx}">Word ${idx + 1}: ${w.toUpperCase()}</option>
+                `).join('');
+            }
+
+            getFingerForKey(char) {
+                const lower = char.toLowerCase();
+                for (let scheme of FINGER_SCHEME) {
+                    if (scheme.keys.includes(lower)) {
+                        return scheme;
+                    }
+                }
+                // Fallback default
+                return { id: 'left-index', name: 'Left Index', hand: 'left', finger: 'Index', color: '#34d399' };
+            }
+
+            // FILTER: Extract unique finger assignments for chord mode so each finger only holds ONE key
+            getFeasibleChordKeys(word) {
+                const required = [];
+                const seenFingers = new Set();
+
+                for (let char of word.toLowerCase()) {
+                    if (!/[a-z0-9,./;]/.test(char)) continue;
+                    const fingerScheme = this.getFingerForKey(char);
+                    if (!seenFingers.has(fingerScheme.id)) {
+                        seenFingers.add(fingerScheme.id);
+                        required.push({
+                            char: char,
+                            scheme: fingerScheme
+                        });
+                    }
+                }
+                return required;
+            }
+
+            loadWord() {
+                if (this.wordIndex >= this.words.length) this.wordIndex = 0;
+                if (this.wordIndex < 0) this.wordIndex = this.words.length - 1;
+
+                const currentWord = this.words[this.wordIndex] || "cat";
+                this.step = 1;
+                this.charIndex = 0;
+                this.heldKeys.clear();
+                this.chordFullyHeld = false;
+
+                // Sync dropdown and progress text
+                document.getElementById('word-select-dropdown').value = this.wordIndex;
+                document.getElementById('stat-progress').innerText = this.wordIndex + 1;
+
+                this.renderStepState(currentWord);
+            }
+
+            renderStepState(word) {
+                const step1Prompt = document.getElementById('step-1-prompt');
+                const step2Prompt = document.getElementById('step-2-prompt');
+                const badge = document.getElementById('step-phase-badge');
+
+                if (this.step === 1) {
+                    step1Prompt.classList.remove('hidden');
+                    step2Prompt.classList.add('hidden');
+                    badge.innerText = "Step 1: Sequential Letter Typing";
+                    badge.className = "px-4 py-1 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-full text-xs font-semibold tracking-wide uppercase";
+
+                    this.renderSequentialWord(word);
+                    const targetChar = word[this.charIndex] || 'a';
+                    const scheme = this.getFingerForKey(targetChar);
+
+                    this.renderDualHandsSvg([scheme]);
+                    this.highlightKeyboardKeys([targetChar.toLowerCase()]);
+
+                    document.getElementById('finger-label-name').innerText = `${scheme.name} (${scheme.finger})`;
+                    document.getElementById('finger-label-name').style.color = scheme.color;
+                    document.getElementById('target-finger-text').innerText = scheme.name;
+                    document.getElementById('feedback-toast').innerText = `Type '${targetChar.toUpperCase()}' using your ${scheme.name}.`;
+
+                } else {
+                    step1Prompt.classList.add('hidden');
+                    step2Prompt.classList.remove('hidden');
+                    badge.innerText = "Step 2: Hold & Release Multi-Key Chord";
+                    badge.className = "px-4 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-full text-xs font-semibold tracking-wide uppercase";
+
+                    const chordItems = this.getFeasibleChordKeys(word);
+                    const activeSchemes = chordItems.map(item => item.scheme);
+                    const targetChars = chordItems.map(item => item.char);
+
+                    document.getElementById('chord-word-display').innerText = word.toUpperCase();
+
+                    this.renderDualHandsSvg(activeSchemes);
+                    this.highlightKeyboardKeys(targetChars);
+
+                    // Active Label
+                    const names = activeSchemes.map(s => s.name).join(', ');
+                    document.getElementById('finger-label-name').innerText = names;
+                    document.getElementById('finger-label-name').style.color = "#fbbf24";
+
+                    // Render chord key badges
+                    const badgeContainer = document.getElementById('chord-key-badges');
+                    badgeContainer.innerHTML = chordItems.map(item => {
+                        const isHeld = this.heldKeys.has(item.char);
+                        const bg = isHeld 
+                            ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/30' 
+                            : 'bg-slate-950 text-amber-300 border-amber-500/40';
+                        return `
+                            <div class="flex items-center gap-2 px-3.5 py-1.5 rounded-xl border-2 font-mono font-extrabold text-sm md:text-base transition-all ${bg}">
+                                <span>${item.char.toUpperCase()}</span>
+                                <span class="text-xs opacity-80">(${item.scheme.finger})</span>
+                                <span>${isHeld ? '✓' : '○'}</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                    const banner = document.getElementById('chord-instruction-banner');
+                    if (!this.chordFullyHeld) {
+                        banner.innerText = "👇 PRESS AND HOLD ALL TARGET KEYS AT THE SAME TIME";
+                        banner.className = "text-xs md:text-sm font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-6 py-2 rounded-xl text-center animate-pulse";
+                    } else {
+                        banner.innerText = "✋ NOW RELEASE ALL KEYS TOGETHER TO COMPLETE THE WORD!";
+                        banner.className = "text-xs md:text-sm font-bold text-emerald-300 bg-emerald-500/20 border border-emerald-500/40 px-6 py-2 rounded-xl text-center active-chord-pulse";
+                    }
+                }
+            }
+
+            renderSequentialWord(word) {
+                const container = document.getElementById('typing-prompt-display');
+                let html = '';
+                for (let i = 0; i < word.length; i++) {
+                    let c = word[i];
+                    let status = "text-slate-500 bg-slate-950/60 border-slate-800";
+                    if (i < this.charIndex) {
+                        status = "text-emerald-400 bg-emerald-500/10 border-emerald-500/40";
+                    } else if (i === this.charIndex) {
+                        status = "text-white bg-indigo-600 border-indigo-400 shadow-xl scale-110";
+                    }
+                    html += `<span class="inline-flex items-center justify-center w-11 h-14 md:w-12 md:h-16 rounded-2xl border-2 font-mono ${status} font-extrabold text-2xl md:text-3xl transition-all">${c.toUpperCase()}</span>`;
+                }
+                container.innerHTML = html;
+            }
+
+            renderDualHandsSvg(activeSchemes) {
+                const activeIds = new Set(activeSchemes.map(s => s.id));
+                const container = document.getElementById('dual-hands-container');
+
+                const getFingerColor = (id, defaultCol = '#1e293b') => {
+                    if (activeIds.has(id)) {
+                        const found = activeSchemes.find(s => s.id === id);
+                        return found ? found.color : '#6366f1';
+                    }
+                    return defaultCol;
+                };
+
+                const isHighlighted = (id) => activeIds.has(id);
+
+                container.innerHTML = `
+                    <svg viewBox="0 0 800 240" class="w-full h-full drop-shadow-2xl">
+                        <!-- LEFT HAND -->
+                        <g id="left-hand" transform="translate(40, 20)">
+                            <!-- Palm -->
+                            <path d="M 60 140 C 60 190 120 200 160 200 C 190 200 200 160 200 120 C 200 90 170 90 150 90 Z" fill="#1e293b" stroke="#334155" stroke-width="3"/>
+                            
+                            <!-- Left Pinky -->
+                            <rect x="50" y="45" width="22" height="85" rx="11" fill="${getFingerColor('left-pinky')}" stroke="${isHighlighted('left-pinky') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('left-pinky') ? '3' : '1'}" class="${isHighlighted('left-pinky') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Left Ring -->
+                            <rect x="80" y="25" width="22" height="100" rx="11" fill="${getFingerColor('left-ring')}" stroke="${isHighlighted('left-ring') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('left-ring') ? '3' : '1'}" class="${isHighlighted('left-ring') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Left Middle -->
+                            <rect x="110" y="15" width="22" height="108" rx="11" fill="${getFingerColor('left-middle')}" stroke="${isHighlighted('left-middle') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('left-middle') ? '3' : '1'}" class="${isHighlighted('left-middle') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Left Index -->
+                            <rect x="140" y="28" width="22" height="98" rx="11" fill="${getFingerColor('left-index')}" stroke="${isHighlighted('left-index') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('left-index') ? '3' : '1'}" class="${isHighlighted('left-index') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Left Thumb (Resting) -->
+                            <g transform="translate(180, 110) rotate(35)">
+                                <rect x="0" y="0" width="24" height="65" rx="12" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+                            </g>
+                            
+                            <text x="120" y="218" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="bold">LEFT HAND</text>
+                        </g>
+
+                        <!-- RIGHT HAND -->
+                        <g id="right-hand" transform="translate(440, 20)">
+                            <!-- Palm -->
+                            <path d="M 180 140 C 180 190 120 200 80 200 C 50 200 40 160 40 120 C 40 90 70 90 90 90 Z" fill="#1e293b" stroke="#334155" stroke-width="3"/>
+                            
+                            <!-- Right Thumb (Resting) -->
+                            <g transform="translate(40, 125) rotate(-35)">
+                                <rect x="0" y="0" width="24" height="65" rx="12" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+                            </g>
+
+                            <!-- Right Index -->
+                            <rect x="78" y="28" width="22" height="98" rx="11" fill="${getFingerColor('right-index')}" stroke="${isHighlighted('right-index') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('right-index') ? '3' : '1'}" class="${isHighlighted('right-index') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Right Middle -->
+                            <rect x="108" y="15" width="22" height="108" rx="11" fill="${getFingerColor('right-middle')}" stroke="${isHighlighted('right-middle') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('right-middle') ? '3' : '1'}" class="${isHighlighted('right-middle') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Right Ring -->
+                            <rect x="138" y="25" width="22" height="100" rx="11" fill="${getFingerColor('right-ring')}" stroke="${isHighlighted('right-ring') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('right-ring') ? '3' : '1'}" class="${isHighlighted('right-ring') ? 'finger-highlight' : ''}"/>
+                            
+                            <!-- Right Pinky -->
+                            <rect x="168" y="45" width="22" height="85" rx="11" fill="${getFingerColor('right-pinky')}" stroke="${isHighlighted('right-pinky') ? '#ffffff' : '#475569'}" stroke-width="${isHighlighted('right-pinky') ? '3' : '1'}" class="${isHighlighted('right-pinky') ? 'finger-highlight' : ''}"/>
+                            
+                            <text x="120" y="218" text-anchor="middle" fill="#94a3b8" font-size="12" font-weight="bold">RIGHT HAND</text>
+                        </g>
+                    </svg>
+                `;
+            }
+
+            renderKeyboard() {
+                for (let r = 0; r < 4; r++) {
+                    const rowEl = document.getElementById(`keyboard-row-${r+1}`);
+                    rowEl.innerHTML = KEYBOARD_ROWS[r].map(key => {
+                        const scheme = this.getFingerForKey(key);
+                        return `
+                            <div id="key-${key}" class="h-10 md:h-12 px-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-xs md:text-sm font-mono font-bold text-slate-300 shadow transition-all duration-150 select-none" style="border-bottom-color: ${scheme.color}; border-bottom-width: 4px;">
+                                ${key.toUpperCase()}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            highlightKeyboardKeys(targetKeys) {
+                const targetSet = new Set(targetKeys.map(k => k.toLowerCase()));
+                
+                document.querySelectorAll('[id^="key-"]').forEach(el => {
+                    const keyVal = el.id.replace('key-', '');
+                    if (targetSet.has(keyVal)) {
+                        el.classList.add('bg-indigo-600', 'text-white', 'scale-105', 'shadow-lg', 'shadow-indigo-500/40');
+                        el.classList.remove('bg-slate-900', 'text-slate-300');
+                    } else {
+                        el.classList.remove('bg-indigo-600', 'text-white', 'scale-105', 'shadow-lg', 'shadow-indigo-500/40');
+                        el.classList.add('bg-slate-900', 'text-slate-300');
+                    }
+                });
+            }
+
+            setupKeyListeners() {
+                window.addEventListener('keydown', (e) => {
+                    const viewPractice = document.getElementById('view-practice');
+                    if (viewPractice.classList.contains('hidden')) return;
+                    if (e.key === 'Tab' || e.key === 'Alt' || e.key === 'Control') return;
+
+                    const char = e.key.toLowerCase();
+
+                    if (this.step === 1) {
+                        this.handleSequentialKeyDown(char);
+                    } else if (this.step === 2) {
+                        this.handleChordKeyDown(char);
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    const viewPractice = document.getElementById('view-practice');
+                    if (viewPractice.classList.contains('hidden')) return;
+                    
+                    const char = e.key.toLowerCase();
+                    if (this.step === 2) {
+                        this.handleChordKeyUp(char);
+                    }
+                });
+            }
+
+            handleSequentialKeyDown(char) {
+                const currentWord = this.words[this.wordIndex] || "cat";
+                const targetChar = currentWord[this.charIndex];
+
+                this.totalTyped++;
+
+                if (char === targetChar.toLowerCase()) {
+                    sound.playTone(600, 'sine', 0.08);
+                    this.streak++;
+                    this.charIndex++;
+
+                    if (this.charIndex >= currentWord.length) {
+                        // Advance to Step 2: Chord Challenge for this word!
+                        sound.playSuccess();
+                        this.step = 2;
+                        this.heldKeys.clear();
+                        this.chordFullyHeld = false;
+                        this.renderStepState(currentWord);
+                    } else {
+                        this.renderStepState(currentWord);
+                    }
+                } else {
+                    sound.playError();
+                    this.errorCount++;
+                    this.streak = 0;
+                    
+                    const card = document.getElementById('prompt-card');
+                    card.classList.add('animate-shake');
+                    setTimeout(() => card.classList.remove('animate-shake'), 300);
+
+                    document.getElementById('feedback-toast').innerText = `Pressed '${char.toUpperCase()}', expected '${targetChar.toUpperCase()}'.`;
+                    document.getElementById('feedback-toast').className = "mt-3 text-xs font-bold text-rose-400 tracking-wide text-center";
+                }
+
+                this.updateStats();
+            }
+
+            handleChordKeyDown(char) {
+                const currentWord = this.words[this.wordIndex] || "cat";
+                const chordItems = this.getFeasibleChordKeys(currentWord);
+                const targetSet = new Set(chordItems.map(i => i.char));
+
+                if (targetSet.has(char)) {
+                    this.heldKeys.add(char);
+                    sound.playTone(500 + (this.heldKeys.size * 100), 'triangle', 0.08);
+
+                    // Check if ALL feasible keys are held
+                    let allHeld = true;
+                    for (let req of targetSet) {
+                        if (!this.heldKeys.has(req)) {
+                            allHeld = false;
+                            break;
+                        }
+                    }
+
+                    if (allHeld && !this.chordFullyHeld) {
+                        this.chordFullyHeld = true;
+                        sound.playTone(880, 'sine', 0.15);
+                    }
+
+                    this.renderStepState(currentWord);
+                }
+            }
+
+            handleChordKeyUp(char) {
+                const currentWord = this.words[this.wordIndex] || "cat";
+
+                if (this.heldKeys.has(char)) {
+                    this.heldKeys.delete(char);
+
+                    // If user held all target keys AND has now fully released all of them!
+                    if (this.chordFullyHeld && this.heldKeys.size === 0) {
+                        sound.playSuccess();
+                        this.streak++;
+                        this.totalTyped += currentWord.length;
+
+                        // Next word!
+                        this.nextWord();
+                        return;
+                    }
+
+                    this.renderStepState(currentWord);
+                }
+            }
+
+            nextWord() {
+                this.wordIndex++;
+                if (this.wordIndex >= this.words.length) this.wordIndex = 0;
+                this.loadWord();
+                this.updateStats();
+            }
+
+            prevWord() {
+                this.wordIndex--;
+                if (this.wordIndex < 0) this.wordIndex = this.words.length - 1;
+                this.loadWord();
+                this.updateStats();
+            }
+
+            onSelectWord(val) {
+                this.wordIndex = parseInt(val, 10);
+                this.loadWord();
+                this.updateStats();
+            }
+
+            updateStats() {
+                document.getElementById('stat-streak').innerText = this.streak;
+                const accuracy = this.totalTyped > 0 
+                    ? Math.max(0, Math.round(((this.totalTyped - this.errorCount) / this.totalTyped) * 100))
+                    : 100;
+                document.getElementById('stat-accuracy').innerText = accuracy;
+            }
+
+            saveCustomWords() {
+                const text = document.getElementById('custom-words-input').value.trim();
+                if (text) {
+                    const parsed = text.split(/\s+/).filter(w => w.length > 0);
+                    if (parsed.length > 0) {
+                        this.words = parsed;
+                        this.wordIndex = 0;
+                        this.populateDropdown();
+                        this.switchTab('practice');
+                        this.loadWord();
+                    }
+                }
+            }
+
+            resetTo50Preset() {
+                this.words = [...PRESET_50_WORDS];
+                this.wordIndex = 0;
+                document.getElementById('custom-words-input').value = PRESET_50_WORDS.join(' ');
+                this.populateDropdown();
+                this.switchTab('practice');
+                this.loadWord();
+            }
+
+            renderGuideCards() {
+                const container = document.getElementById('scheme-guide-cards');
+                container.innerHTML = FINGER_SCHEME.map(scheme => `
+                    <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col justify-between space-y-3 relative overflow-hidden">
+                        <div class="absolute top-0 left-0 w-2 h-full" style="background-color: ${scheme.color}"></div>
+                        <div>
+                            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">${scheme.hand} hand</div>
+                            <h3 class="text-base font-extrabold text-white">${scheme.name}</h3>
+                        </div>
+                        <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 font-medium block mb-1">Assigned Keys:</span>
+                            <div class="font-mono font-extrabold text-sm text-indigo-300 tracking-wider break-all">
+                                ${scheme.keys.join(', ').toUpperCase()}
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('custom-words-input').value = PRESET_50_WORDS.join(' ');
+            }
+        }
+
+        // Initialize App
+        let app;
+        window.addEventListener('DOMContentLoaded', () => {
+            app = new WordTypingApp();
+        });
+    </script>
+</body>
+</html>
